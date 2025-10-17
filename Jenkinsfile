@@ -9,7 +9,7 @@ pipeline {
     stages {
         stage('Checkout') {
             steps {
-                git branch: 'dev', url: 'https://github.com/<your-username>/delphi-devops-poc.git'
+                git branch: 'dev', url: 'https://github.com/Vedant2000039/Delphi-Pipeline-POC.git'
             }
         }
 
