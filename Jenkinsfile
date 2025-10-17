@@ -16,7 +16,7 @@ pipeline {
         stage('Install Dependencies') {
             steps {
                 dir('backend') {
-                    bat 'npm install'
+                    sh 'npm install'
                 }
             }
         }
@@ -24,7 +24,7 @@ pipeline {
         stage('Test') {
             steps {
                 dir('backend') {
-                    bat 'npm test'
+                    sh 'npm test'
                 }
             }
         }
@@ -33,11 +33,11 @@ pipeline {
             steps {
                 script {
                     if (env.GIT_BRANCH == "origin/dev") {
-                        bat 'scripts\\deploy.bat dev'
+                        sh 'bash scripts/deploy.sh dev'
                     } else if (env.GIT_BRANCH == "origin/qa") {
-                        bat 'scripts\\deploy.bat qa'
+                        sh 'bash scripts/deploy.sh qa'
                     } else if (env.GIT_BRANCH == "origin/main") {
-                        bat 'scripts\\deploy.bat prod'
+                        sh 'bash scripts/deploy.sh prod'
                     }
                 }
             }
