@@ -1,0 +1,13 @@
+{
+  "name": "delphi-poc-backend",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "start": "node app.js",
+    "test": "echo Running tests... && exit 0"
+  },
+  "dependencies": {
+    "express": "^4.19.2",
+    "dotenv": "^16.4.0"
+  }
+}
