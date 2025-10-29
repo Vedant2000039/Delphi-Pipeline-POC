@@ -6,8 +6,8 @@ pipeline {
     PATH = "${NODE_HOME}/bin:${env.PATH}"
     REPO_URL = 'https://github.com/Vedant2000039/Delphi-Pipeline-POC.git'
     // Notification emails (replace)
-    DEV_NOTIFY = 'dev-team@example.com'
-    QA_NOTIFY  = 'qa-team@example.com'
+    DEV_NOTIFY = 'vmulherkar@xtsworld.in'
+    QA_NOTIFY  = 'sonarved@gmail.com'
   }
 
   options {
