@@ -95,25 +95,26 @@ pipeline {
         RUN TEST CASES (QA)
     ========================== */
     stage('Run QA Test Cases') {
-      steps {
-        echo "Running automated test cases in QA..."
-        sh 'chmod +x scripts/test_cases.sh || true'
-        sh 'bash scripts/test_cases.sh qa'
-      }
-      post {
-        success {
-          mail to: "${QA_NOTIFY}",
-            subject: "✅ Delphi POC | QA Test Cases PASSED - Build #${env.BUILD_NUMBER}",
-            body: "All QA test cases passed successfully. Promoting to UAT..."
-        }
-        failure {
-          mail to: "${QA_NOTIFY}",
-            subject: "❌ Delphi POC | QA Test Cases FAILED - Build #${env.BUILD_NUMBER}",
-            body: "QA test cases failed. Please review the build logs: ${env.BUILD_URL}"
-          error("Stopping pipeline since QA test cases failed.")
-        }
-      }
+  steps {
+    echo "Running automated test cases in QA..."
+    dir('backend') {
+      // Start server in background
+      sh 'nohup node app.js > server.log 2>&1 &'
+      // Wait for it to start
+      sh 'sleep 5'
     }
+
+    sh 'chmod +x scripts/test_cases.sh'
+    sh 'bash scripts/test_cases.sh qa'
+  }
+  post {
+    failure {
+      mail bcc: '', body: "QA tests failed in Jenkins pipeline.", from: '', replyTo: '', subject: '❌ QA Test Failure', to: 'your@email.com'
+      error("Stopping pipeline since QA test cases failed.")
+    }
+  }
+}
+
 
     /* =========================
        DEPLOY TO UAT
