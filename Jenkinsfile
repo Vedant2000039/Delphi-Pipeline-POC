@@ -8,9 +8,9 @@ pipeline {
 
     // Notification emails
     DEV_NOTIFY  = 'vmulherkar@xtsworld.in'
-    QA_NOTIFY   = 'sonarved@gmail.com'
-    UAT_NOTIFY  = 'sonarved@gmail.com'
-    PROD_NOTIFY = 'sonarved@gmail.com'
+    QA_NOTIFY   = 'vmulherkar@xtsworld.in'
+    UAT_NOTIFY  = 'vmulherkar@xtsworld.in'
+    PROD_NOTIFY = 'vmulherkar@xtsworld.in'
   }
 
   options {
