@@ -1,14 +1,17 @@
 #!/bin/bash
 set -euo pipefail
 
-# scripts/test_cases.sh <env>
-# 3 simple test cases:
-# 1) HTTP 200 on root /
-# 2) Response body contains "Delphi POC running" (basic content check)
-# 3) Response body contains environment name (ENVIRONMENT value)
+# -----------------------------------------------------------
+# Automated Smoke Tests for Delphi POC
 #
 # Usage:
-#   ./scripts/test_cases.sh qa
+#   ./scripts/test_cases.sh <dev|test|uat|main>
+#
+# Runs 3 simple checks:
+#   1) Root URL returns HTTP 200
+#   2) Response body contains "Delphi POC running"
+#   3) Response body mentions correct environment
+# -----------------------------------------------------------
 
 ENV=${1:-}
 ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
@@ -16,42 +19,52 @@ BACKEND_DIR="${ROOT_DIR}/backend"
 ENV_FILE="${ROOT_DIR}/environments/${ENV}.env"
 
 if [ -z "$ENV" ]; then
-  echo "Usage: $0 <dev|qa|prod>"
+  echo "❌ Usage: $0 <dev|test|uat|main>"
   exit 1
 fi
 
 if [ ! -f "$ENV_FILE" ]; then
-  echo "Env file not found: $ENV_FILE"
+  echo "❌ Env file not found: $ENV_FILE"
   exit 1
 fi
 
-# read PORT and ENVIRONMENT from env file
-# Using grep to find values
+# Read PORT and ENVIRONMENT from env file
 PORT=$(grep -E '^PORT=' "$ENV_FILE" | cut -d'=' -f2- | tr -d '\r' || echo "3000")
 ENVIRONMENT=$(grep -E '^ENVIRONMENT=' "$ENV_FILE" | cut -d'=' -f2- | tr -d '\r' || echo "$ENV")
 
 URL="http://localhost:${PORT}/"
 
-echo "Running test cases against $URL (expected ENVIRONMENT=$ENVIRONMENT)"
+echo "-----------------------------------------------------------"
+echo "🔍 Running smoke tests for environment: $ENVIRONMENT"
+echo "🔗 URL: $URL"
+echo "-----------------------------------------------------------"
 
-# test 1: http 200
-echo "Test 1: HTTP status is 200..."
+# Test 1: HTTP 200 check
+echo "✅ Test 1: Checking HTTP status 200..."
 HTTP_STATUS=$(curl -s -o /dev/null -w '%{http_code}' "$URL" || true)
 if [ "$HTTP_STATUS" != "200" ]; then
-  echo "FAIL: Expected HTTP 200 but got $HTTP_STATUS"
+  echo "❌ FAIL: Expected HTTP 200 but got $HTTP_STATUS"
   exit 1
 fi
-echo "PASS"
+echo "✅ PASS"
 
-# test 2: response contains 'Delphi POC running'
-echo "Test 2: Response contains 'Delphi POC running'..."
+# Test 2: Response contains 'Delphi POC running'
+echo "✅ Test 2: Checking if response contains 'Delphi POC running'..."
 BODY=$(curl -s "$URL" || true)
-echo "$BODY" | grep -q "Delphi POC running" || { echo "FAIL: body does not contain 'Delphi POC running'"; exit 1; }
-echo "PASS"
+echo "$BODY" | grep -q "Delphi POC running" || {
+  echo "❌ FAIL: Response body missing 'Delphi POC running'"
+  exit 1
+}
+echo "✅ PASS"
 
-# test 3: response contains environment name (case-insensitive)
-echo "Test 3: Response contains environment name '$ENVIRONMENT'..."
-echo "$BODY" | tr '[:upper:]' '[:lower:]' | grep -q "$(echo $ENVIRONMENT | tr '[:upper:]' '[:lower:]')" || { echo "FAIL: body does not contain environment '$ENVIRONMENT'"; exit 1; }
-echo "PASS"
+# Test 3: Response contains environment name (case-insensitive)
+echo "✅ Test 3: Checking if response contains environment '$ENVIRONMENT'..."
+echo "$BODY" | tr '[:upper:]' '[:lower:]' | grep -q "$(echo "$ENVIRONMENT" | tr '[:upper:]' '[:lower:]')" || {
+  echo "❌ FAIL: Response body missing environment '$ENVIRONMENT'"
+  exit 1
+}
+echo "✅ PASS"
 
-echo "All test cases passed "
+echo "-----------------------------------------------------------"
+echo "🎉 All smoke tests passed successfully for '$ENVIRONMENT'!"
+echo "-----------------------------------------------------------"
