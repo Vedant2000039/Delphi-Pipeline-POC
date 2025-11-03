@@ -8,7 +8,7 @@ const ENV = process.env.ENVIRONMENT || "dev";
 
 app.get("/", (req, res) => {
   res.json({
-    message: `delphi POC running in ${ENV.toUpperCase()} environment.`,
+    message: `delphi POC running in ${ENV.toUpperCase()} env.`,
   });
 });
 
