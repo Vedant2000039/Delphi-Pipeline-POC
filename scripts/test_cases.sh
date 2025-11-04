@@ -19,12 +19,12 @@ BACKEND_DIR="${ROOT_DIR}/backend"
 ENV_FILE="${ROOT_DIR}/environments/${ENV}.env"
 
 if [ -z "$ENV" ]; then
-  echo "❌ Usage: $0 <dev|test|uat|main>"
+  echo " Usage: $0 <dev|test|uat|main>"
   exit 1
 fi
 
 if [ ! -f "$ENV_FILE" ]; then
-  echo "❌ Env file not found: $ENV_FILE"
+  echo " Env file not found: $ENV_FILE"
   exit 1
 fi
 
@@ -40,33 +40,33 @@ echo "🔗 URL: $URL"
 echo "-----------------------------------------------------------"
 
 # Test 1: HTTP 200 check
-echo "✅ Test 1: Checking HTTP status 200..."
+echo "Test 1: Checking HTTP status 200..."
 HTTP_STATUS=$(curl -s -o /dev/null -w '%{http_code}' "$URL" || true)
 if [ "$HTTP_STATUS" != "200" ]; then
-  echo "❌ FAIL: Expected HTTP 200 but got $HTTP_STATUS"
+  echo " FAIL: Expected HTTP 200 but got $HTTP_STATUS"
   exit 1
 fi
-echo "✅ PASS"
+echo " PASS"
 
 # Test 2: Response contains 'Delphi POC running'
-echo "✅ Test 2: Checking if response contains 'Delphi POC running'..."
+echo " Test 2: Checking if response contains 'Delphi POC running'..."
 BODY=$(curl -s "$URL" || true)
 echo "$BODY" | grep -q "Delphi POC running" || {
-  echo "❌ FAIL: Response body missing 'Delphi POC running'"
+  echo " FAIL: Response body missing 'Delphi POC running'"
   exit 1
 }
-echo "✅ PASS"
+echo " PASS"
 
 # Test 3: Response contains environment name (case-insensitive)
-echo "✅ Test 3: Checking if response contains environment '$ENVIRONMENT'..."
+echo " Test 3: Checking if response contains environment '$ENVIRONMENT'..."
 echo "$BODY" | tr '[:upper:]' '[:lower:]' | grep -q "$(echo "$ENVIRONMENT" | tr '[:upper:]' '[:lower:]')" || {
-  echo "❌ FAIL: Response body missing environment '$ENVIRONMENT'"
+  echo " FAIL: Response body missing environment '$ENVIRONMENT'"
   exit 1
 }
-echo "✅ PASS"
+echo " PASS"
 
 echo "-----------------------------------------------------------"
-echo "🎉 All smoke tests passed successfully for '$ENVIRONMENT'!"
+echo " All smoke tests passed successfully for '$ENVIRONMENT'!"
 echo "-----------------------------------------------------------"
 
 

@@ -54,12 +54,12 @@ pipeline {
       post {
         success {
           mail to: "${DEV_NOTIFY}",
-            subject: "✅ Delphi POC | Unit Tests PASSED (Dev) - ${env.JOB_NAME} #${env.BUILD_NUMBER}",
+            subject: " Delphi POC | Unit Tests PASSED (Dev) - ${env.JOB_NAME} #${env.BUILD_NUMBER}",
             body: "All Dev unit tests passed successfully. Build URL: ${env.BUILD_URL}"
         }
         failure {
           mail to: "${DEV_NOTIFY}",
-            subject: "❌ Delphi POC | Unit Tests FAILED (Dev) - ${env.JOB_NAME} #${env.BUILD_NUMBER}",
+            subject: " Delphi POC | Unit Tests FAILED (Dev) - ${env.JOB_NAME} #${env.BUILD_NUMBER}",
             body: "Unit tests failed. Check console log: ${env.BUILD_URL}"
         }
       }
@@ -80,12 +80,12 @@ pipeline {
       post {
         success {
           mail to: "${QA_NOTIFY}",
-            subject: "✅ Delphi POC | Deployed to TEST Successfully - Build #${env.BUILD_NUMBER}",
+            subject: " Delphi POC | Deployed to TEST Successfully - Build #${env.BUILD_NUMBER}",
             body: "The application has been deployed to TEST environment.\n\nCheck Jenkins: ${env.BUILD_URL}"
         }
         failure {
           mail to: "${QA_NOTIFY}",
-            subject: "❌ Delphi POC | Deployment to TEST Failed - Build #${env.BUILD_NUMBER}",
+            subject: " Delphi POC | Deployment to TEST Failed - Build #${env.BUILD_NUMBER}",
             body: "Deployment to TEST failed. Logs: ${env.BUILD_URL}"
         }
       }
@@ -109,7 +109,7 @@ pipeline {
   }
   post {
     failure {
-      mail bcc: '', body: "QA tests failed in Jenkins pipeline.", from: '', replyTo: '', subject: '❌ QA Test Failure', to: 'your@email.com'
+      mail bcc: '', body: "QA tests failed in Jenkins pipeline.", from: '', replyTo: '', subject: ' QA Test Failure', to: 'your@email.com'
       error("Stopping pipeline since QA test cases failed.")
     }
   }
@@ -131,12 +131,12 @@ pipeline {
       post {
         success {
           mail to: "${UAT_NOTIFY}",
-            subject: "✅ Delphi POC | UAT Deployment Successful - Build #${env.BUILD_NUMBER}",
+            subject: "Delphi POC | UAT Deployment Successful - Build #${env.BUILD_NUMBER}",
             body: "Application deployed to UAT environment. UAT team can start validation.\n\nURL: http://localhost:4003"
         }
         failure {
           mail to: "${UAT_NOTIFY}",
-            subject: "❌ Delphi POC | UAT Deployment Failed - Build #${env.BUILD_NUMBER}",
+            subject: " Delphi POC | UAT Deployment Failed - Build #${env.BUILD_NUMBER}",
             body: "Deployment to UAT failed. Logs: ${env.BUILD_URL}"
         }
       }
@@ -157,12 +157,12 @@ pipeline {
       post {
         success {
           mail to: "${PROD_NOTIFY}",
-            subject: "🚀 Delphi POC | Production Deployment SUCCESS - Build #${env.BUILD_NUMBER}",
+            subject: " Delphi POC | Production Deployment SUCCESS - Build #${env.BUILD_NUMBER}",
             body: "Production deployment completed successfully.\n\nURL: http://localhost:4000"
         }
         failure {
           mail to: "${PROD_NOTIFY}",
-            subject: "🔥 Delphi POC | Production Deployment FAILED - Build #${env.BUILD_NUMBER}",
+            subject: " Delphi POC | Production Deployment FAILED - Build #${env.BUILD_NUMBER}",
             body: "Production deployment failed. Review logs: ${env.BUILD_URL}"
         }
       }
@@ -177,10 +177,10 @@ pipeline {
       echo "Pipeline completed with result: ${currentBuild.currentResult}"
     }
     success {
-      echo "✅ All stages executed successfully!"
+      echo " All stages executed successfully!"
     }
     failure {
-      echo "❌ One or more stages failed. Check email notifications and console logs."
+      echo "One or more stages failed. Check email notifications and console logs."
     }
   }
 }
