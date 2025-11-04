@@ -70,7 +70,7 @@ pipeline {
     ========================== */
     stage('Deploy to Test Environment (QA)') {
       when {
-        branch 'dev'
+        branch 'main'
       }
       steps {
         echo "Deploying to TEST environment..."
