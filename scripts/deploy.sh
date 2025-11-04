@@ -188,7 +188,7 @@ while true; do
   fi
 done
 
-success "✅ Deployment complete for ${ENV}"
+success "Deployment complete for ${ENV}"
 exit 0
 
 
