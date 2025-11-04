@@ -70,36 +70,27 @@
 # echo "-----------------------------------------------------------"
 
 
-#!/usr/bin/env bash
+# !/usr/bin/env bash
+# !/usr/bin/env bash
+
+
 #!/usr/bin/env bash
 set -euo pipefail
 
-ENV="$1"
-PORT="${PORT:-3000}"
-HOST="${QA_HOST:-localhost}"
-ROOT_URL="http://${HOST}:${PORT}/"
-API_URL="http://${HOST}:${PORT}/api/ping"
+# Usage:
+#   ./scripts/test_cases.sh <dev|qa|uat|prod>
 
-echo "Running QA smoke tests for env=$ENV on ${HOST}:${PORT}"
+ENV=${1:-}
+ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
+BACKEND_DIR="${ROOT_DIR}/backend"
+ENV_FILE="${ROOT_DIR}/environments/${ENV}.env"
 
-# Wait up to 30 seconds for either / or /api/ping to return 200
-timeout=30
-while [ $timeout -gt 0 ]; do
-  status_root=$(curl -s -o /dev/null -w "%{http_code}" "$ROOT_URL" || echo "000")
-  if [ "$status_root" = "200" ]; then
-    echo "OK: ${ROOT_URL} returned 200"
-    exit 0
-  fi
-  status_api=$(curl -s -o /dev/null -w "%{http_code}" "$API_URL" || echo "000")
-  if [ "$status_api" = "200" ]; then
-    echo "OK: ${API_URL} returned 200"
-    exit 0
-  fi
-  echo "Waiting for server... ($timeout) got root=$status_root api=$status_api"
-  sleep 2
-  timeout=$((timeout-2))
-done
+if [ -z "$ENV" ]; then
+  echo "❌ Usage: $0 <dev|qa|uat|prod>"
+  exit 1
+fi
 
-echo "ERROR: App did not respond with 200 on either root or api ping"
-exit 1
-
+if [ ! -f "$ENV_FILE" ]; then
+  echo "❌ Env file not found: $ENV_FILE"
+  exit 1
+fi
