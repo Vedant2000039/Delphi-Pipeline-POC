@@ -70,6 +70,5 @@ echo "🎉 All smoke tests passed successfully for '$ENVIRONMENT'!"
 echo "-----------------------------------------------------------"
 
 
-!/usr/bin/env bash
 
 
