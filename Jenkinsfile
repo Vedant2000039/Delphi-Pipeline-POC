@@ -100,17 +100,19 @@ pipeline {
     /* =========================
         RUN TEST CASES (QA)
     ========================== */
-    stage('Run QA Test Cases') {
+   stage('Run QA Test Cases') {
   steps {
-    echo "Running automated test cases in QA..."
-    dir('backend') {
-      // Start server in background
-      sh 'nohup node app.js > server.log 2>&1 &'
-      // Wait for it to start
-      sh 'sleep 5'
-    }
+    echo "Preparing and starting app for QA..."
 
-    sh 'chmod +x scripts/test_cases.sh'
+    // Build & deploy using your script so frontend build is copied to backend/public
+    sh 'chmod +x scripts/deploy.sh || true'
+    sh 'bash scripts/deploy.sh qa'
+
+    // Give server a moment to start
+    sh 'sleep 5'
+
+    // Run QA smoke tests
+    sh 'chmod +x scripts/test_cases.sh || true'
     sh 'bash scripts/test_cases.sh qa'
   }
   post {
@@ -120,6 +122,7 @@ pipeline {
     }
   }
 }
+
 
 
     /* =========================

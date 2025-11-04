@@ -193,49 +193,48 @@
 
 
 #!/usr/bin/env bash
-set -e
+#!/usr/bin/env bash
+set -euo pipefail
 
-ENV=$1  # qa | uat | prod
-if [ -z "$ENV" ]; then
-  echo "Usage: ./deploy.sh <env>"
-  exit 1
-fi
+ENV="$1"   # qa | uat | prod
+echo "Deploy script invoked for env: ${ENV:-<none>}"
 
-echo "Deploying to environment: $ENV"
-export ENVIRONMENT=$ENV
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+FRONTEND_DIR="$ROOT_DIR/frontend"
+BACKEND_DIR="$ROOT_DIR/backend"
+PUBLIC_DIR="$BACKEND_DIR/public"
 
-# 1) Build frontend
+# 1) Build frontend (in CI we already installed deps but building here ensures artifact is fresh)
 echo "→ Building frontend..."
-cd frontend
+cd "$FRONTEND_DIR"
 npm ci
 npm run build
-cd ..
 
 # 2) Copy build to backend/public
 echo "→ Copying frontend build to backend/public..."
-rm -rf backend/public
-mkdir -p backend/public
-cp -r frontend/build/* backend/public/
+rm -rf "$PUBLIC_DIR"
+mkdir -p "$PUBLIC_DIR"
+cp -r "$FRONTEND_DIR"/build/* "$PUBLIC_DIR"/
 
 # 3) Install backend deps
 echo "→ Installing backend dependencies..."
-cd backend
+cd "$BACKEND_DIR"
 npm ci
-cd ..
 
-# 4) Start the backend server (detached) so it serves the static files in QA
-#    We will use nohup + redirect logs; adjust PORT if needed.
+# 4) Start backend server for QA
 if [ "$ENV" = "qa" ]; then
   export ENVIRONMENT="qa"
-  export PORT=${PORT:-3000}
-  echo "→ Starting backend server (serve frontend) on port $PORT ..."
-  # stop any previous process running on that port (optional, cautious)
-  # Using simple pkill for node; in production use process manager like pm2/systemd
-  pkill -f "node app.js" || true
-  nohup node backend/app.js > backend/server.log 2>&1 &
-  echo "Started (PID: $!) — logs: backend/server.log"
+  # ensure any old node processes (for this app.js) are stopped - optional and naive
+  pkill -f "node .*app.js" || true
+
+  # start in background and capture logs
+  echo "→ Starting backend (node app.js) as background process..."
+  nohup node app.js > server.log 2>&1 &
+  sleep 2
+  PID=$!
+  echo "→ Started backend with PID $PID. Logs at $BACKEND_DIR/server.log"
 else
-  echo "Non-QA env detected: this deploy script currently only starts server for QA."
+  echo "Deploy for ${ENV} - not starting server automatically in this simple script."
 fi
 
-echo "Deployment to $ENV completed."
+echo "Deployment for $ENV completed."

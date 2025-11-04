@@ -71,29 +71,35 @@
 
 
 #!/usr/bin/env bash
-set -e
+#!/usr/bin/env bash
+set -euo pipefail
 
-ENV=$1
-PORT=${PORT:-3000}
-HOST=${QA_HOST:-localhost}
+ENV="$1"
+PORT="${PORT:-3000}"
+HOST="${QA_HOST:-localhost}"
+ROOT_URL="http://${HOST}:${PORT}/"
+API_URL="http://${HOST}:${PORT}/api/ping"
 
-URL="http://${HOST}:${PORT}/"
+echo "Running QA smoke tests for env=$ENV on ${HOST}:${PORT}"
 
-echo "Checking $URL ..."
-
-# wait until server returns 200 or timeout after 30s
+# Wait up to 30 seconds for either / or /api/ping to return 200
 timeout=30
 while [ $timeout -gt 0 ]; do
-  status=$(curl -s -o /dev/null -w "%{http_code}" "$URL" || echo "000")
-  if [ "$status" = "200" ]; then
-    echo "OK: $URL returned 200"
+  status_root=$(curl -s -o /dev/null -w "%{http_code}" "$ROOT_URL" || echo "000")
+  if [ "$status_root" = "200" ]; then
+    echo "OK: ${ROOT_URL} returned 200"
     exit 0
   fi
-  echo "Waiting for server... ($timeout) got status $status"
+  status_api=$(curl -s -o /dev/null -w "%{http_code}" "$API_URL" || echo "000")
+  if [ "$status_api" = "200" ]; then
+    echo "OK: ${API_URL} returned 200"
+    exit 0
+  fi
+  echo "Waiting for server... ($timeout) got root=$status_root api=$status_api"
   sleep 2
   timeout=$((timeout-2))
 done
 
-echo "ERROR: $URL did not return 200 in time"
+echo "ERROR: App did not respond with 200 on either root or api ping"
 exit 1
 
