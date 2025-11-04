@@ -36,9 +36,15 @@ pipeline {
     ========================== */
     stage('Install Dependencies') {
       steps {
-        dir('backend') {
-          sh 'npm install'
-        }
+        // install backend deps
+    dir('backend') {
+      sh 'npm ci'
+    }
+    // install & build frontend
+    dir('frontend') {
+      sh 'npm ci'
+      sh 'npm run build'
+    }
       }
     }
 
