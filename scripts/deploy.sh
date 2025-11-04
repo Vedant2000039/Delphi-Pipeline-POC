@@ -74,7 +74,7 @@ if [ ! -f "${ENV_FILE}" ]; then
   die "Environment file not found: ${ENV_FILE}"
 fi
 
-info "🚀 Deploying to environment: ${ENV}"
+info "Deploying to environment: ${ENV}"
 info "Using env file: ${ENV_FILE}"
 mkdir -p "${PID_DIR}" "${LOG_DIR}"
 
@@ -168,7 +168,7 @@ info "Performing health check on ${HEALTH_URL}"
 elapsed=0
 while true; do
   if curl -fsS --max-time 5 "${HEALTH_URL}" >/dev/null 2>&1; then
-    success "Health check passed ✅"
+    success "Health check passed"
     break
   fi
   sleep "${SLEEP_INTERVAL}"
@@ -188,7 +188,7 @@ while true; do
   fi
 done
 
-success "✅ Deployment complete for ${ENV}"
+success "Deployment complete for ${ENV}"
 exit 0
 
 
