@@ -74,7 +74,7 @@ if [ ! -f "${ENV_FILE}" ]; then
   die "Environment file not found: ${ENV_FILE}"
 fi
 
-info "🚀 Deploying to environment: ${ENV}"
+info "Deploying to environment: ${ENV}"
 info "Using env file: ${ENV_FILE}"
 mkdir -p "${PID_DIR}" "${LOG_DIR}"
 
