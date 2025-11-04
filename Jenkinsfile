@@ -29,6 +29,18 @@ pipeline {
         echo "Checking out 'dev' branch by default..."
         git branch: 'dev', url: "${env.REPO_URL}"
       }
+      post {
+        success {
+          mail to: "${DEV_NOTIFY}",
+               subject: "✅ Checkout SUCCESS - ${env.JOB_NAME} #${env.BUILD_NUMBER}",
+               body: "Checkout completed successfully. Build URL: ${env.BUILD_URL}"
+        }
+        failure {
+          mail to: "${DEV_NOTIFY}",
+               subject: "❌ Checkout FAILED - ${env.JOB_NAME} #${env.BUILD_NUMBER}",
+               body: "Checkout failed. Check console log: ${env.BUILD_URL}"
+        }
+      }
     }
 
     /* =========================
@@ -38,6 +50,18 @@ pipeline {
       steps {
         dir('backend') {
           sh 'npm install'
+        }
+      }
+      post {
+        success {
+          mail to: "${DEV_NOTIFY}",
+               subject: "✅ Install Dependencies PASSED - ${env.JOB_NAME} #${env.BUILD_NUMBER}",
+               body: "Dependencies installed successfully. Build URL: ${env.BUILD_URL}"
+        }
+        failure {
+          mail to: "${DEV_NOTIFY}",
+               subject: "❌ Install Dependencies FAILED - ${env.JOB_NAME} #${env.BUILD_NUMBER}",
+               body: "Dependency installation failed. Check console: ${env.BUILD_URL}"
         }
       }
     }
@@ -95,26 +119,33 @@ pipeline {
         RUN TEST CASES (QA)
     ========================== */
     stage('Run QA Test Cases') {
-  steps {
-    echo "Running automated test cases in QA..."
-    dir('backend') {
-      // Start server in background
-      sh 'nohup node app.js > server.log 2>&1 &'
-      // Wait for it to start
-      sh 'sleep 5'
-    }
+      steps {
+        echo "Running automated test cases in QA..."
+        dir('backend') {
+          // Start server in background
+          sh 'nohup node app.js > server.log 2>&1 &'
+          // Wait for it to start
+          sh 'sleep 5'
+        }
 
-    sh 'chmod +x scripts/test_cases.sh'
-    sh 'bash scripts/test_cases.sh qa'
-  }
-  post {
-    failure {
-      mail bcc: '', body: "QA tests failed in Jenkins pipeline.", from: '', replyTo: '', subject: '❌ QA Test Failure', to: 'your@email.com'
-      error("Stopping pipeline since QA test cases failed.")
+        sh 'chmod +x scripts/test_cases.sh'
+        sh 'bash scripts/test_cases.sh qa'
+      }
+      post {
+        success {
+          mail to: "${QA_NOTIFY}",
+            subject: "✅ QA Tests PASSED - Build #${env.BUILD_NUMBER}",
+            body: "QA smoke tests passed successfully. Build: ${env.BUILD_URL}"
+        }
+        failure {
+          mail to: "${QA_NOTIFY}",
+            subject: "❌ QA Tests FAILED - Build #${env.BUILD_NUMBER}",
+            body: "QA tests failed. Check console and server logs: ${env.BUILD_URL}"
+          // Keep existing behavior: stop pipeline on failure
+          script { error("Stopping pipeline since QA test cases failed.") }
+        }
+      }
     }
-  }
-}
-
 
     /* =========================
        DEPLOY TO UAT
