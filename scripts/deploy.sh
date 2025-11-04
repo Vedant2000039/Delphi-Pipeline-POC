@@ -43,7 +43,7 @@ info() {
 }
 
 success() {
-  echo -e "${GREEN}${NC} $*"
+  echo -e "${GREEN}✅${NC} $*"
 }
 
 read_env_value() {
