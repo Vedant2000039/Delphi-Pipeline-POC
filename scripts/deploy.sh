@@ -192,5 +192,3 @@ success "✅ Deployment complete for ${ENV}"
 exit 0
 
 
-!/usr/bin/env bash
-
