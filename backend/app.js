@@ -13,7 +13,7 @@ import cors from "cors";
 // 1️⃣ Load Environment Configuration
 // --------------------------------------------------
 const __dirname = path.resolve();
-//const ENVIRONMENT = process.env.ENVIRONMENT || "dev";
+const ENVIRONMENT = process.env.ENVIRONMENT || "dev";
 const envFilePath = path.join(__dirname, "../environments", `${ENVIRONMENT}.env`);
 
 if (fs.existsSync(envFilePath)) {
