@@ -221,12 +221,13 @@ pipeline {
     }
 
     stage('Deploy to QA') {
-      when { branch 'main' }
-      steps {
-        sh 'chmod +x scripts/deploy.sh'
-        sh 'bash scripts/deploy.sh qa'
-      }
-    }
+  when { anyOf { branch 'main'; branch 'dev' } }
+  steps {
+    sh 'chmod +x scripts/deploy.sh'
+    sh 'bash scripts/deploy.sh qa'
+  }
+}
+
 
     stage('Run QA Tests') {
       steps {
