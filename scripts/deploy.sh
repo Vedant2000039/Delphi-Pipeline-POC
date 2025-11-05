@@ -195,6 +195,7 @@
 #!/usr/bin/env bash
 #!/usr/bin/env bash
 #!/usr/bin/env bash
+#!/usr/bin/env bash
 set -euo pipefail
 
 # =========================================================
@@ -215,14 +216,16 @@ RED='\033[0;31m'; GREEN='\033[0;32m'; YELLOW='\033[1;33m'; NC='\033[0m'
 
 die() { echo -e "${RED} ERROR:${NC} $*" >&2; exit 1; }
 info() { echo -e "${YELLOW}>>>${NC} $*"; }
-success() { echo -e "${GREEN}${NC} $*"; }
+success() { echo -e "${GREEN}$*${NC}"; }
 
 read_env_value() {
   local file="$1" key="$2"
   grep -E "^\s*${key}=" "$file" 2>/dev/null | tail -n1 | sed -E "s/^\s*${key}=(.*)\s*$/\1/" | tr -d '\r' || true
 }
 
+# -----------------------
 # Validate input
+# -----------------------
 if [ $# -lt 1 ]; then
   die "Usage: $0 <dev|qa|uat|prod>"
 fi
@@ -237,13 +240,17 @@ info "Deploying to environment: ${ENV}"
 info "Using env file: ${ENV_FILE}"
 mkdir -p "${PID_DIR}" "${LOG_DIR}"
 
+# -----------------------
 # Copy env file → backend/.env
+# -----------------------
 TARGET_ENV_FILE="${BACKEND_DIR}/.env"
 tr -d '\r' < "${ENV_FILE}" > "${TARGET_ENV_FILE}.tmp" || die "Failed to normalize env file"
 mv "${TARGET_ENV_FILE}.tmp" "${TARGET_ENV_FILE}"
 success "Copied ${ENV_FILE} → ${TARGET_ENV_FILE}"
 
+# -----------------------
 # Install dependencies
+# -----------------------
 cd "${BACKEND_DIR}" || die "Failed to cd ${BACKEND_DIR}"
 if [ -f package-lock.json ] || [ -f npm-shrinkwrap.json ]; then
   info "Installing dependencies with npm ci"
@@ -254,7 +261,9 @@ else
 fi
 success "Dependencies installed"
 
+# -----------------------
 # Determine PORT and ENVIRONMENT
+# -----------------------
 PORT=$(read_env_value "${TARGET_ENV_FILE}" "PORT")
 [ -z "$PORT" ] && PORT=3000 && info "PORT not defined, defaulting to $PORT"
 ENVIRONMENT_VAL=$(read_env_value "${TARGET_ENV_FILE}" "ENVIRONMENT")
@@ -265,55 +274,36 @@ NOHUP_LOG="${LOG_DIR}/delphi-${ENV}.log"
 PID_FILE="${PID_DIR}/delphi-${ENV}.pid"
 info "Using PORT=${PORT}, ENVIRONMENT=${ENVIRONMENT_VAL}"
 
-# Stop any existing PM2 process with the same name and any delphi-poc-* processes
+# -----------------------
+# Stop any existing PM2 process with the same name
+# -----------------------
 if command -v pm2 >/dev/null 2>&1; then
   info "PM2 detected — ensuring no conflicting process exists"
-
-  # delete same-named process (if exists)
-  if pm2 list --no-color | grep -q "${PROCESS_NAME}"; then
-    info "Stopping and deleting existing PM2 process: ${PROCESS_NAME}"
+  if pm2 list | grep -q "${PROCESS_NAME}"; then
+    info "Stopping existing PM2 process: ${PROCESS_NAME}"
     pm2 stop "${PROCESS_NAME}" || true
+    info "Deleting existing PM2 process: ${PROCESS_NAME}"
     pm2 delete "${PROCESS_NAME}" || true
   fi
-
-  # Also remove any other delphi-poc-* processes to avoid port conflicts
-  # (safe for single-app test environments)
-  pm2 jlist | python3 - <<PYTHON || true
-import sys, json
-try:
-    j = json.load(sys.stdin)
-except Exception:
-    sys.exit(0)
-for proc in j:
-    name = proc.get('name','')
-    if name.startswith('delphi-poc-') and name != "${PROCESS_NAME}":
-        print(name)
-PYTHON | while read -r other; do
-    [ -n "$other" ] && { info "Deleting stray PM2 process: $other"; pm2 delete "$other" || true; }
-done
 fi
 
-# Ensure nothing else (non-pm2) is occupying the port (best-effort)
-if command -v lsof >/dev/null 2>&1; then
-  if lsof -i :"${PORT}" -t >/dev/null 2>&1; then
-    OLD_PID=$(lsof -i :"${PORT}" -t | head -n1)
-    info "Found process listening on port ${PORT} (PID=${OLD_PID}) — killing it"
-    kill -9 "${OLD_PID}" || true
-    sleep 1
-  fi
-else
-  info "lsof not available; skipping port-kill step (best effort)"
-fi
-
-# Start the service (prefer PM2)
+# -----------------------
+# Start the service
+# -----------------------
 if command -v pm2 >/dev/null 2>&1; then
   info "Starting new PM2 process: ${PROCESS_NAME}"
+  # Use --update-env so PM2 picks up exported environment variables from .env file
   pm2 start app.js --name "${PROCESS_NAME}" --update-env || die "PM2 failed to start process"
+  sleep 1
+  info "PM2 process list:"
+  pm2 list || true
 else
   info "PM2 not found — using nohup"
   if [ -f "${PID_FILE}" ]; then
     OLD_PID=$(cat "${PID_FILE}" 2>/dev/null || true)
-    [ -n "$OLD_PID" ] && kill -0 "$OLD_PID" 2>/dev/null && kill "$OLD_PID" || true
+    if [ -n "$OLD_PID" ]; then
+      kill -0 "$OLD_PID" 2>/dev/null && kill "$OLD_PID" || true
+    fi
     sleep 1
   fi
   nohup node app.js > "${NOHUP_LOG}" 2>&1 &
@@ -322,7 +312,9 @@ else
   success "Started node app (PID=${NEW_PID})"
 fi
 
+# -----------------------
 # Health check
+# -----------------------
 HEALTH_URL="http://localhost:${PORT}${HEALTH_PATH}"
 info "Performing health check on ${HEALTH_URL}"
 elapsed=0
@@ -336,11 +328,17 @@ while true; do
   info "waiting... (${elapsed}/${MAX_WAIT_SECONDS}s)"
   if [ "$elapsed" -ge "$MAX_WAIT_SECONDS" ]; then
     echo -e "${RED}Health check failed after ${MAX_WAIT_SECONDS}s${NC}"
-    [ -f "${NOHUP_LOG}" ] && tail -n 100 "${NOHUP_LOG}" || true
-    command -v pm2 >/dev/null 2>&1 && pm2 logs "${PROCESS_NAME}" --lines 100 --nostream || true
+    [ -f "${NOHUP_LOG}" ] && echo "---- tail ${NOHUP_LOG} ----" && tail -n 100 "${NOHUP_LOG}" || true
+    if command -v pm2 >/dev/null 2>&1; then
+      echo "---- pm2 list ----"
+      pm2 list || true
+      echo "---- pm2 logs (${PROCESS_NAME}) (last 100 lines) ----"
+      pm2 logs "${PROCESS_NAME}" --lines 100 --nostream || true
+    fi
     die "Deployment failed: service did not become healthy"
   fi
 done
 
 success "Deployment complete for ${ENV}"
 exit 0
+
