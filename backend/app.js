@@ -9,7 +9,7 @@ import path from "path";
 // 1️⃣ Load Environment File
 // -------------------------
 const NODE_ENV = process.env.NODE_ENV || "dev"; // default to dev
-const ENV_PATH = path.resolve(process.cwd(), `environments/${NODE_ENV}.env`);
+const ENV_PATH = path.resolve(process.cwd(), `../environments/${NODE_ENV}.env`);
 
 // Check if env file exists
 if (!fs.existsSync(ENV_PATH)) {
