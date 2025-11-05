@@ -285,15 +285,6 @@ pipeline {
         }
 
 
-        stage('Start ngrok for environments') {
-    steps {
-        sh '''
-            docker run -d --rm --name ngrok-all \
-            -p 4040:4040 \
-            -v $WORKSPACE/ngrok.yml:/ngrok.yml \
-            ngrok/ngrok:latest start --all
-        '''
-    }
 }
 
     }
