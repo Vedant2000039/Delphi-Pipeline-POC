@@ -1,0 +1,18 @@
+authtoken: 34xnoqmnKjPCwvOGgv9R2e1mnR2_2gauzGEyk97SVWMh9pFgd
+
+tunnels:
+  jenkins:
+    proto: http
+    addr: 8081
+
+  qa-backend:
+    proto: http
+    addr: 5001
+
+  uat-backend:
+    proto: http
+    addr: 5002
+
+  prod-backend:
+    proto: http
+    addr: 5003
