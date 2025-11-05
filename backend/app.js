@@ -1,31 +1,46 @@
-// backend/app.js
 import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
 import process from "process";
-import path from "path";
-import fs from "fs";
 
-// load .env from current working dir (backend/.env)
-const ENV_PATH = path.resolve(process.cwd(), ".env");
+// -------------------------
+// 1️⃣ Load Environment File
+// -------------------------
+const NODE_ENV = process.env.NODE_ENV || "dev"; // default to dev
+const ENV_PATH = `environments/${NODE_ENV}.env`;
 
-if (!fs.existsSync(ENV_PATH)) {
-  console.warn(`⚠️ .env not found at ${ENV_PATH} — continuing with process.env/defaults`);
-} else {
-  const result = dotenv.config({ path: ENV_PATH });
-  if (result.error) {
-    console.error(`❌ Failed to parse ${ENV_PATH}:`, result.error);
-    process.exit(1);
-  }
+// Load the env file
+const result = dotenv.config({ path: ENV_PATH });
+
+if (result.error) {
+  console.error(`Failed to load environment file: ${ENV_PATH}`);
+  process.exit(1);
 }
 
-const PORT = process.env.PORT || 3000;
-const ENVIRONMENT = process.env.ENVIRONMENT || process.env.NODE_ENV || "dev";
+// -------------------------
+// 2️⃣ Read Config Values
+// -------------------------
+const PORT = process.env.PORT;
+const ENVIRONMENT = process.env.ENVIRONMENT || NODE_ENV;
 
+// Fail fast if PORT is not set
+if (!PORT) {
+  console.error(
+    `PORT is not defined in ${ENV_PATH}. Please set PORT in your env file.`
+  );
+  process.exit(1);
+}
+
+// -------------------------
+// 3️⃣ Initialize Express
+// -------------------------
 const app = express();
 app.use(cors());
-app.use(express.json());
+app.use(express.json()); // for parsing JSON requests
 
+// -------------------------
+// 4️⃣ Sample Route
+// -------------------------
 app.get("/", (req, res) => {
   res.json({
     message: `Delphi POC running in ${ENVIRONMENT.toUpperCase()} environment.`,
@@ -33,17 +48,11 @@ app.get("/", (req, res) => {
   });
 });
 
-// Use try/catch style handler to log errors (pm2 will show logs)
-const server = app.listen(PORT, () => {
+// -------------------------
+// 5️⃣ Start Server
+// -------------------------
+const server = app.listen(PORT, "0.0.0.0", () => {
   console.log(`✅ Server running on port ${PORT} in ${ENVIRONMENT} environment`);
 });
 
-server.on("error", (err) => {
-  if (err.code === "EADDRINUSE") {
-    console.error(`❌ Port ${PORT} is already in use. Please stop other processes or change PORT.`);
-    process.exit(1);
-  } else {
-    console.error("❌ Server error:", err);
-    process.exit(1);
-  }
-});
+export default server;
