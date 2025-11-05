@@ -193,6 +193,7 @@
 
 
 #!/usr/bin/env bash
+#!/usr/bin/env bash
 set -euo pipefail
 
 # =========================================================
@@ -272,21 +273,24 @@ PID_FILE="${PID_DIR}/delphi-${ENV}.pid"
 info "Using PORT=${PORT}, ENVIRONMENT=${ENVIRONMENT_VAL}"
 
 # -----------------------
-# Start or reload service
+# Stop any existing PM2 process with the same name
 # -----------------------
 if command -v pm2 >/dev/null 2>&1; then
-  info "PM2 detected — using PM2"
-  if [ -f "${ROOT_DIR}/ecosystem.config.js" ]; then
-    pm2 startOrReload "${ROOT_DIR}/ecosystem.config.js" --env "${ENV}" || true
-  else
-    if pm2 list | grep -q "${PROCESS_NAME}"; then
-      info "Restarting existing PM2 process: ${PROCESS_NAME}"
-      pm2 restart "${PROCESS_NAME}" --update-env || true
-    else
-      info "Starting new PM2 process: ${PROCESS_NAME}"
-      pm2 start app.js --name "${PROCESS_NAME}" --update-env || true
-    fi
+  info "PM2 detected — ensuring no conflicting process exists"
+  if pm2 list | grep -q "${PROCESS_NAME}"; then
+    info "Stopping existing PM2 process: ${PROCESS_NAME}"
+    pm2 stop "${PROCESS_NAME}" || true
+    info "Deleting existing PM2 process: ${PROCESS_NAME}"
+    pm2 delete "${PROCESS_NAME}" || true
   fi
+fi
+
+# -----------------------
+# Start the service
+# -----------------------
+if command -v pm2 >/dev/null 2>&1; then
+  info "Starting new PM2 process: ${PROCESS_NAME}"
+  pm2 start app.js --name "${PROCESS_NAME}" --update-env || die "PM2 failed to start process"
 else
   info "PM2 not found — using nohup"
   if [ -f "${PID_FILE}" ]; then
@@ -324,3 +328,4 @@ done
 
 success "Deployment complete for ${ENV}"
 exit 0
+
