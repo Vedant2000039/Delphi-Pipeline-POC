@@ -117,7 +117,7 @@ pipeline {
     UAT_PORT = '5002'
     PROD_PORT = '5003'
 
-    # credential id in Jenkins (Secret text) that stores a GitHub PAT with 'repo' scope
+    // credential id in Jenkins (Secret text) that stores a GitHub PAT with 'repo' scope
     GITHUB_CRED_ID = 'github-token'
 
     DEV_NOTIFY  = 'vmulherkar@xtsworld.in'
@@ -409,3 +409,4 @@ pipeline {
     always { echo "Pipeline done: ${currentBuild.currentResult}" }
   }
 }
+
