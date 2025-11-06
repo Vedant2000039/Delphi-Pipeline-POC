@@ -154,7 +154,7 @@ pipeline {
       steps {
         dir('backend') {
           sh '''
-set -euo pipefail
+set -eu
 npm ci
 '''
         }
@@ -166,7 +166,7 @@ npm ci
       steps {
         dir('backend') {
           sh '''
-set -euo pipefail
+set -eu
 npm test
 '''
         }
@@ -187,7 +187,7 @@ npm test
       steps {
         withCredentials([string(credentialsId: env.GITHUB_CRED_ID, variable: 'GITHUB_TOKEN')]) {
           sh '''
-set -euo pipefail
+set -eu
 
 REMOTE="https://${GITHUB_TOKEN}@github.com/Vedant2000039/Delphi-Pipeline-POC.git"
 SHA=$(git rev-parse HEAD)
@@ -227,7 +227,7 @@ fi
       steps {
         withCredentials([string(credentialsId: env.GITHUB_CRED_ID, variable: 'GITHUB_TOKEN')]) {
           sh '''
-set -euo pipefail
+set -eu
 
 TARGET="${QA_DIR}"
 REPO_AUTH="https://${GITHUB_TOKEN}@github.com/Vedant2000039/Delphi-Pipeline-POC.git"
@@ -261,7 +261,7 @@ bash scripts/deploy.sh qa
       when { expression { env.BRANCH_NAME == 'dev' } }
       steps {
         sh '''
-set -euo pipefail
+set -eu
 bash scripts/test_cases.sh http://localhost:${QA_PORT}
 '''
       }
@@ -279,7 +279,7 @@ bash scripts/test_cases.sh http://localhost:${QA_PORT}
       steps {
         withCredentials([string(credentialsId: env.GITHUB_CRED_ID, variable: 'GITHUB_TOKEN')]) {
           sh '''
-set -euo pipefail
+set -eu
 
 REMOTE="https://${GITHUB_TOKEN}@github.com/Vedant2000039/Delphi-Pipeline-POC.git"
 SHA=$(git ls-remote origin refs/heads/qa | awk '{print $1}')
@@ -311,7 +311,7 @@ fi
       steps {
         withCredentials([string(credentialsId: env.GITHUB_CRED_ID, variable: 'GITHUB_TOKEN')]) {
           sh '''
-set -euo pipefail
+set -eu
 
 TARGET="${UAT_DIR}"
 REPO_AUTH="https://${GITHUB_TOKEN}@github.com/Vedant2000039/Delphi-Pipeline-POC.git"
@@ -342,7 +342,7 @@ bash scripts/deploy.sh uat
       when { expression { env.BRANCH_NAME == 'dev' } }
       steps {
         sh '''
-set -euo pipefail
+set -eu
 bash scripts/test_cases.sh http://localhost:${UAT_PORT}
 '''
       }
@@ -359,7 +359,7 @@ bash scripts/test_cases.sh http://localhost:${UAT_PORT}
       steps {
         withCredentials([string(credentialsId: env.GITHUB_CRED_ID, variable: 'GITHUB_TOKEN')]) {
           sh '''
-set -euo pipefail
+set -eu
 
 REMOTE="https://${GITHUB_TOKEN}@github.com/Vedant2000039/Delphi-Pipeline-POC.git"
 SHA=$(git ls-remote origin refs/heads/uat | awk '{print $1}')
@@ -391,7 +391,7 @@ fi
       steps {
         withCredentials([string(credentialsId: env.GITHUB_CRED_ID, variable: 'GITHUB_TOKEN')]) {
           sh '''
-set -euo pipefail
+set -eu
 
 TARGET="${PROD_DIR}"
 REPO_AUTH="https://${GITHUB_TOKEN}@github.com/Vedant2000039/Delphi-Pipeline-POC.git"
@@ -426,4 +426,3 @@ bash scripts/deploy.sh prod
     always { echo "Pipeline done: ${currentBuild.currentResult}" }
   }
 }
-
