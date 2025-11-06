@@ -136,9 +136,17 @@ pipeline {
 
     stage('Checkout (branch)') {
       steps {
-        echo "Branch: ${env.BRANCH_NAME}"
-        // ensure workspace is on the branch that triggered the job
+        // checkout first so a workspace/git repo exists
         checkout scm
+
+        script {
+          // Multibranch Pipeline will set BRANCH_NAME automatically.
+          // For plain Pipeline jobs, detect branch after checkout if not set.
+          if (!env.BRANCH_NAME) {
+            env.BRANCH_NAME = sh(script: "git rev-parse --abbrev-ref HEAD", returnStdout: true).trim()
+          }
+          echo "Branch: ${env.BRANCH_NAME}"
+        }
       }
     }
 
@@ -157,10 +165,9 @@ npm ci
       when { expression { env.BRANCH_NAME == 'dev' } }
       steps {
         dir('backend') {
-          sh '''bash -lc <<'BASH'
+          sh '''
 set -euo pipefail
 npm test
-BASH
 '''
         }
       }
@@ -179,7 +186,7 @@ BASH
       when { expression { env.BRANCH_NAME == 'dev' } }
       steps {
         withCredentials([string(credentialsId: env.GITHUB_CRED_ID, variable: 'GITHUB_TOKEN')]) {
-          sh '''bash -lc <<'BASH'
+          sh '''
 set -euo pipefail
 
 REMOTE="https://${GITHUB_TOKEN}@github.com/Vedant2000039/Delphi-Pipeline-POC.git"
@@ -210,7 +217,6 @@ if [ "${PUSH_EXIT}" -ne 0 ]; then
 else
   echo "Pushed commit ${SHA} to origin/qa"
 fi
-BASH
 '''
         }
       }
@@ -220,7 +226,7 @@ BASH
       when { expression { env.BRANCH_NAME == 'dev' } }
       steps {
         withCredentials([string(credentialsId: env.GITHUB_CRED_ID, variable: 'GITHUB_TOKEN')]) {
-          sh '''bash -lc <<'BASH'
+          sh '''
 set -euo pipefail
 
 TARGET="${QA_DIR}"
@@ -240,7 +246,6 @@ fi
 cd "${TARGET}"
 chmod +x scripts/deploy.sh
 bash scripts/deploy.sh qa
-BASH
 '''
         }
       }
@@ -255,10 +260,9 @@ BASH
     stage('Run QA Tests') {
       when { expression { env.BRANCH_NAME == 'dev' } }
       steps {
-        sh '''bash -lc <<'BASH'
+        sh '''
 set -euo pipefail
 bash scripts/test_cases.sh http://localhost:${QA_PORT}
-BASH
 '''
       }
       post {
@@ -274,7 +278,7 @@ BASH
       when { expression { env.BRANCH_NAME == 'dev' } }
       steps {
         withCredentials([string(credentialsId: env.GITHUB_CRED_ID, variable: 'GITHUB_TOKEN')]) {
-          sh '''bash -lc <<'BASH'
+          sh '''
 set -euo pipefail
 
 REMOTE="https://${GITHUB_TOKEN}@github.com/Vedant2000039/Delphi-Pipeline-POC.git"
@@ -297,7 +301,6 @@ if [ "${PUSH_EXIT}" -ne 0 ]; then
   echo "PR created: ${PR_URL}"
   exit 2
 fi
-BASH
 '''
         }
       }
@@ -307,7 +310,7 @@ BASH
       when { expression { env.BRANCH_NAME == 'dev' } }
       steps {
         withCredentials([string(credentialsId: env.GITHUB_CRED_ID, variable: 'GITHUB_TOKEN')]) {
-          sh '''bash -lc <<'BASH'
+          sh '''
 set -euo pipefail
 
 TARGET="${UAT_DIR}"
@@ -324,7 +327,6 @@ fi
 cd "${TARGET}"
 chmod +x scripts/deploy.sh
 bash scripts/deploy.sh uat
-BASH
 '''
         }
       }
@@ -339,10 +341,9 @@ BASH
     stage('Run UAT Tests') {
       when { expression { env.BRANCH_NAME == 'dev' } }
       steps {
-        sh '''bash -lc <<'BASH'
+        sh '''
 set -euo pipefail
 bash scripts/test_cases.sh http://localhost:${UAT_PORT}
-BASH
 '''
       }
       post {
@@ -357,7 +358,7 @@ BASH
       when { expression { env.BRANCH_NAME == 'dev' } }
       steps {
         withCredentials([string(credentialsId: env.GITHUB_CRED_ID, variable: 'GITHUB_TOKEN')]) {
-          sh '''bash -lc <<'BASH'
+          sh '''
 set -euo pipefail
 
 REMOTE="https://${GITHUB_TOKEN}@github.com/Vedant2000039/Delphi-Pipeline-POC.git"
@@ -380,7 +381,6 @@ if [ "${PUSH_EXIT}" -ne 0 ]; then
   echo "PR created: ${PR_URL}"
   exit 2
 fi
-BASH
 '''
         }
       }
@@ -390,7 +390,7 @@ BASH
       when { expression { env.BRANCH_NAME == 'dev' } }
       steps {
         withCredentials([string(credentialsId: env.GITHUB_CRED_ID, variable: 'GITHUB_TOKEN')]) {
-          sh '''bash -lc <<'BASH'
+          sh '''
 set -euo pipefail
 
 TARGET="${PROD_DIR}"
@@ -407,7 +407,6 @@ fi
 cd "${TARGET}"
 chmod +x scripts/deploy.sh
 bash scripts/deploy.sh prod
-BASH
 '''
         }
       }
@@ -427,5 +426,4 @@ BASH
     always { echo "Pipeline done: ${currentBuild.currentResult}" }
   }
 }
-
 
