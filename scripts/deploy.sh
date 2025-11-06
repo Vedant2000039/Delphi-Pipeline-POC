@@ -151,11 +151,6 @@ set -euo pipefail
 # =========================================================
 # deploy.sh <env>
 # Supported env: dev | qa | uat | prod
-# - Copies environments/<env>.env -> backend/.env
-# - Installs dependencies (npm ci)
-# - Exports .env into environment so pm2/nohup see values
-# - Starts/reloads via pm2 or nohup fallback
-# - Performs health check
 # =========================================================
 
 ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
@@ -169,16 +164,13 @@ SLEEP_INTERVAL=2
 
 RED='\033[0;31m'; GREEN='\033[0;32m'; YELLOW='\033[1;33m'; NC='\033[0m'
 
-die()    { echo -e "${RED} ERROR:${NC} $*" >&2; exit 1; }
-info()   { echo -e "${YELLOW}>>>${NC} $*"; }
-success(){ echo -e "${GREEN}$*${NC}"; }
+die() { echo -e "${RED} ERROR:${NC} $*" >&2; exit 1; }
+info() { echo -e "${YELLOW}>>>${NC} $*"; }
+success() { echo -e "${GREEN}$*${NC}"; }
 
 read_env_value() {
   local file="$1" key="$2"
-  grep -E "^\s*${key}=" "$file" 2>/dev/null \
-    | tail -n1 \
-    | sed -E "s/^\s*${key}=(.*)\s*$/\1/" \
-    | sed -e 's/\r$//' || true
+  grep -E "^\s*${key}=" "$file" 2>/dev/null | tail -n1 | sed -E "s/^\s*${key}=(.*)\s*$/\1/" | tr -d '\r' || true
 }
 
 # -----------------------
@@ -199,7 +191,7 @@ info "Using env file: ${ENV_FILE}"
 mkdir -p "${PID_DIR}" "${LOG_DIR}"
 
 # -----------------------
-# Copy env file → backend/.env (normalize CRLF)
+# Copy env file → backend/.env
 # -----------------------
 TARGET_ENV_FILE="${BACKEND_DIR}/.env"
 tr -d '\r' < "${ENV_FILE}" > "${TARGET_ENV_FILE}.tmp" || die "Failed to normalize env file"
@@ -209,24 +201,21 @@ success "Copied ${ENV_FILE} → ${TARGET_ENV_FILE}"
 # -----------------------
 # Install dependencies
 # -----------------------
-[ -d "${BACKEND_DIR}" ] || die "Backend directory missing: ${BACKEND_DIR}"
 cd "${BACKEND_DIR}" || die "Failed to cd ${BACKEND_DIR}"
-
 if [ -f package-lock.json ] || [ -f npm-shrinkwrap.json ]; then
-  info "Installing dependencies with npm ci (production)"
-  npm ci --silent --production || die "npm ci failed"
+  info "Installing dependencies with npm ci"
+  npm ci --silent
 else
-  info "Installing dependencies with npm install (production)"
-  npm install --silent --production || die "npm install failed"
+  info "Installing dependencies with npm install"
+  npm install --silent
 fi
 success "Dependencies installed"
 
 # -----------------------
-# Export .env variables into this shell so pm2/nohup child sees them
+# Export env to child processes
 # -----------------------
 if [ -f "${TARGET_ENV_FILE}" ]; then
-  info "Exporting environment variables from ${TARGET_ENV_FILE}"
-  # Use a safe export: ignore comments and empty lines
+  info "Exporting variables from ${TARGET_ENV_FILE}"
   set -a
   # shellcheck disable=SC1091
   . "${TARGET_ENV_FILE}"
@@ -264,8 +253,6 @@ fi
 # -----------------------
 if command -v pm2 >/dev/null 2>&1; then
   info "Starting new PM2 process: ${PROCESS_NAME}"
-  # Ensure PM2 loads updated environment variables
-  # If you have an ecosystem.config.js you may prefer pm2 startOrReload there
   if [ -f "${ROOT_DIR}/ecosystem.config.js" ]; then
     info "Using ecosystem.config.js with pm2 (env=${ENV})"
     pm2 startOrReload "${ROOT_DIR}/ecosystem.config.js" --env "${ENV}" || die "PM2 failed to startOrReload"
@@ -273,7 +260,7 @@ if command -v pm2 >/dev/null 2>&1; then
     pm2 start app.js --name "${PROCESS_NAME}" --update-env || die "PM2 failed to start process"
   fi
   sleep 1
-  info "PM2 process list (short):"
+  info "PM2 process list:"
   pm2 list || true
 else
   info "PM2 not found — using nohup fallback"
@@ -322,3 +309,4 @@ done
 
 success "Deployment complete for ${ENV}"
 exit 0
+
