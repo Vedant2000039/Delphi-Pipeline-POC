@@ -145,10 +145,9 @@ pipeline {
     stage('Install Dependencies') {
       steps {
         dir('backend') {
-          sh '''bash -lc <<'BASH'
+          sh '''
 set -euo pipefail
 npm ci
-BASH
 '''
         }
       }
