@@ -117,7 +117,7 @@ pipeline {
         UAT_NOTIFY  = 'vmulherkar@xtsworld.in'
         PROD_NOTIFY = 'vmulherkar@xtsworld.in'
 
-        // Your Jenkins credential id (secret text with the GitHub PAT)
+        // Jenkins secret-text credential id containing your GitHub PAT
         GIT_CRED_ID = 'github-token'
     }
 
@@ -129,7 +129,6 @@ pipeline {
 
     stages {
 
-        // Optional: quick token check (safe, read-only check)
         stage('Git Token Quick Check') {
             steps {
                 script {
@@ -153,6 +152,7 @@ pipeline {
 
         stage('Checkout') {
             steps {
+                // We checkout dev by default. Multibranch jobs will set BRANCH_NAME; webhook-triggered pipelines may not.
                 git branch: 'dev', url: "${env.REPO_URL}"
             }
         }
@@ -182,7 +182,13 @@ pipeline {
         }
 
         stage('Deploy to QA') {
-            when { anyOf { branch 'dev'; branch 'main' } }
+            when {
+                expression {
+                    def b = env.BRANCH_NAME ?: env.GIT_BRANCH ?: ''
+                    // match dev or main in any common format (origin/dev, refs/heads/dev, dev)
+                    return (b ==~ /(?i).*\bdev\b.*/ || b ==~ /(?i).*\bmain\b.*/)
+                }
+            }
             steps {
                 sh 'chmod +x scripts/deploy.sh'
                 sh 'bash scripts/deploy.sh qa'
@@ -190,7 +196,12 @@ pipeline {
         }
 
         stage('Run QA Tests') {
-            when { anyOf { branch 'dev'; branch 'main' } }
+            when {
+                expression {
+                    def b = env.BRANCH_NAME ?: env.GIT_BRANCH ?: ''
+                    return (b ==~ /(?i).*\bdev\b.*/ || b ==~ /(?i).*\bmain\b.*/)
+                }
+            }
             steps {
                 sh 'chmod +x scripts/test_cases.sh'
                 sh 'bash scripts/test_cases.sh qa'
@@ -204,25 +215,17 @@ pipeline {
                               set -e
                               TMPDIR=$(mktemp -d)
                               cd "$TMPDIR"
-
-                              # clone repo (read-only clone is fine)
                               git clone --no-tags --depth 1 "$REPO_URL" repo || git clone "$REPO_URL" repo
                               cd repo
-
                               git config user.email "ci@delphi-poc"
                               git config user.name "Delphi CI"
 
-                              # fetch refs
                               git fetch origin dev:refs/remotes/origin/dev || true
                               git fetch origin qa:refs/remotes/origin/qa || true
 
-                              # checkout qa
                               git checkout qa || git checkout -b qa
-
-                              # ensure it's the latest remote qa
                               git reset --hard origin/qa || true
 
-                              # perform non-interactive merge from origin/dev
                               if git merge --no-ff --no-edit origin/dev; then
                                   echo "Merge succeeded (dev -> qa), pushing..."
                                   REMOTE_URL="https://${GIT_TOKEN}@github.com/Vedant2000039/Delphi-Pipeline-POC.git"
@@ -247,7 +250,8 @@ pipeline {
         }
 
         stage('Deploy to UAT') {
-            when { expression { currentBuild.currentResult == 'SUCCESS' } }
+            // Only attempt UAT deploy when pipeline result so far is SUCCESS
+            when { expression { currentBuild.currentResult == null || currentBuild.currentResult == 'SUCCESS' } }
             steps {
                 sh 'bash scripts/deploy.sh uat'
             }
@@ -260,10 +264,8 @@ pipeline {
                               set -e
                               TMPDIR=$(mktemp -d)
                               cd "$TMPDIR"
-
                               git clone --no-tags --depth 1 "$REPO_URL" repo || git clone "$REPO_URL" repo
                               cd repo
-
                               git config user.email "ci@delphi-poc"
                               git config user.name "Delphi CI"
 
@@ -296,8 +298,13 @@ pipeline {
         }
 
         stage('Deploy to PROD') {
-            // keep your original guard — deploy to prod only from main (adjust if you prefer a different trigger)
-            when { branch 'main' }
+            when {
+                expression {
+                    def b = env.BRANCH_NAME ?: env.GIT_BRANCH ?: ''
+                    // Only allow deploy to prod when build is triggered from main branch (or refs containing main)
+                    return (b ==~ /(?i).*\bmain\b.*/)
+                }
+            }
             steps {
                 sh 'bash scripts/deploy.sh prod'
             }
@@ -310,10 +317,8 @@ pipeline {
                               set -e
                               TMPDIR=$(mktemp -d)
                               cd "$TMPDIR"
-
                               git clone --no-tags --depth 1 "$REPO_URL" repo || git clone "$REPO_URL" repo
                               cd repo
-
                               git config user.email "ci@delphi-poc"
                               git config user.name "Delphi CI"
 
@@ -352,4 +357,5 @@ pipeline {
         failure { echo "Some stages failed" }
     }
 }
+
 
