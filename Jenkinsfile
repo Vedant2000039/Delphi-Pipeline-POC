@@ -1,190 +1,108 @@
 // pipeline {
-//   agent any
+//     agent any
 
-//   environment {
-//     NODE_HOME = tool name: 'nodejs'
-//     PATH = "${NODE_HOME}/bin:${env.PATH}"
-//     REPO_URL = 'https://github.com/Vedant2000039/Delphi-Pipeline-POC.git'
+//     environment {
+//         NODE_HOME = tool name: 'nodejs'
+//         PATH = "${NODE_HOME}/bin:${env.PATH}"
+//         REPO_URL = 'https://github.com/Vedant2000039/Delphi-Pipeline-POC.git'
 
-//     // Notification emails
-//     DEV_NOTIFY  = 'vmulherkar@xtsworld.in'
-//     QA_NOTIFY   = 'vmulherkar@xtsworld.in'
-//     UAT_NOTIFY  = 'vmulherkar@xtsworld.in'
-//     PROD_NOTIFY = 'vmulherkar@xtsworld.in'
-//   }
-
-//   options {
-//     disableConcurrentBuilds()
-//     buildDiscarder(logRotator(numToKeepStr: '20'))
-//     timestamps()
-//   }
-
-//   stages {
-
-//     /* =========================
-//         CHECKOUT STAGE
-//     ========================== */
-//     stage('Checkout') {
-//       steps {
-//         echo "Checking out 'dev' branch by default..."
-//         git branch: 'dev', url: "${env.REPO_URL}"
-//       }
+//         DEV_NOTIFY  = 'vmulherkar@xtsworld.in'
+//         QA_NOTIFY   = 'vmulherkar@xtsworld.in'
+//         UAT_NOTIFY  = 'vmulherkar@xtsworld.in'
+//         PROD_NOTIFY = 'vmulherkar@xtsworld.in'
 //     }
 
-//     /* =========================
-//         INSTALL DEPENDENCIES
-//     ========================== */
-//     stage('Install Dependencies') {
-//       steps {
-//         dir('backend') {
-//           sh 'npm install'
-//         }
-//       }
+//     options { 
+//         disableConcurrentBuilds()
+//         timestamps()
+//         buildDiscarder(logRotator(numToKeepStr: '20')) 
 //     }
 
-//     /* =========================
-//        UNIT TESTS (DEV)
-//     ========================== */
-//     stage('Unit Tests - Dev') {
-//       steps {
-//         dir('backend') {
-//           sh 'npm test'
+//     stages {
+
+//         stage('Checkout') {
+//             steps { 
+//                 git branch: 'dev', url: "${env.REPO_URL}" 
+//             }
 //         }
-//       }
-//       post {
-//         success {
-//           mail to: "${DEV_NOTIFY}",
-//             subject: " Delphi POC | Unit Tests PASSED (Dev) - ${env.JOB_NAME} #${env.BUILD_NUMBER}",
-//             body: "All Dev unit tests passed successfully. Build URL: ${env.BUILD_URL}"
+
+//         stage('Install Dependencies') {
+//             steps { 
+//                 dir('backend') { 
+//                     sh 'npm install' 
+//                 } 
+//             }
 //         }
-//         failure {
-//           mail to: "${DEV_NOTIFY}",
-//             subject: " Delphi POC | Unit Tests FAILED (Dev) - ${env.JOB_NAME} #${env.BUILD_NUMBER}",
-//             body: "Unit tests failed. Check console log: ${env.BUILD_URL}"
+
+//         stage('Unit Tests - Dev') {
+//             steps { 
+//                 dir('backend') { 
+//                     sh 'npm test' 
+//                 } 
+//             }
+//             post {
+//                 success { 
+//                     mail to: "${DEV_NOTIFY}", subject: "Unit Tests PASSED (Dev)", body: "${env.BUILD_URL}" 
+//                 }
+//                 failure { 
+//                     mail to: "${DEV_NOTIFY}", subject: "Unit Tests FAILED (Dev)", body: "${env.BUILD_URL}" 
+//                 }
+//             }
 //         }
-//       }
+
+//         stage('Deploy to QA') {
+//             when { anyOf { branch 'dev'; branch 'main' } }
+//             steps {
+//                 sh 'chmod +x scripts/deploy.sh'
+//                 sh 'bash scripts/deploy.sh qa'
+//             }
+//         }
+
+//         stage('Run QA Tests') {
+//             when { anyOf { branch 'dev'; branch 'main' } }
+//             steps {
+//                 sh 'chmod +x scripts/test_cases.sh'
+//                 sh 'bash scripts/test_cases.sh qa'
+//             }
+//             post {
+//                 failure {
+//                     mail to: "${QA_NOTIFY}", subject: 'QA Test Failure', body: "${env.BUILD_URL}"
+//                     error("QA tests failed.")
+//                 }
+//             }
+//         }
+
+//         stage('Deploy to UAT') {
+//             when { expression { currentBuild.currentResult == 'SUCCESS' } }
+//             steps { 
+//                 sh 'bash scripts/deploy.sh uat' 
+//             }
+//             post {
+//                 failure {
+//                     mail to: "${UAT_NOTIFY}", subject: 'UAT Deployment Failed', body: "${env.BUILD_URL}"
+//                 }
+//             }
+//         }
+
+//         stage('Deploy to PROD') {
+//             when { branch 'main' }
+//             steps { 
+//                 sh 'bash scripts/deploy.sh prod' 
+//             }
+//             post {
+//                 failure {
+//                     mail to: "${PROD_NOTIFY}", subject: 'PROD Deployment Failed', body: "${env.BUILD_URL}"
+//                 }
+//             }
+//         }
 //     }
 
-//     /* =========================
-//        DEPLOY TO TEST (QA)
-//     ========================== */
-//     stage('Deploy to Test Environment (QA)') {
-//       when {
-//         branch 'main'
-//       }
-//       steps {
-//         echo "Deploying to TEST environment..."
-//         sh 'chmod +x scripts/deploy.sh || true'
-//         sh 'bash scripts/deploy.sh qa'
-//       }
-//       post {
-//         success {
-//           mail to: "${QA_NOTIFY}",
-//             subject: " Delphi POC | Deployed to TEST Successfully - Build #${env.BUILD_NUMBER}",
-//             body: "The application has been deployed to TEST environment.\n\nCheck Jenkins: ${env.BUILD_URL}"
-//         }
-//         failure {
-//           mail to: "${QA_NOTIFY}",
-//             subject: " Delphi POC | Deployment to TEST Failed - Build #${env.BUILD_NUMBER}",
-//             body: "Deployment to TEST failed. Logs: ${env.BUILD_URL}"
-//         }
-//       }
+//     post {
+//         always { echo "Pipeline completed: ${currentBuild.currentResult}" }
+//         success { echo "All stages succeeded" }
+//         failure { echo "Some stages failed" }
 //     }
-
-//     /* =========================
-//         RUN TEST CASES (QA)
-//     ========================== */
-//     stage('Run QA Test Cases') {
-//   steps {
-//     echo "Running automated test cases in QA..."
-//     dir('backend') {
-//       // Start server in background
-//       sh 'nohup node app.js > server.log 2>&1 &'
-//       // Wait for it to start
-//       sh 'sleep 5'
-//     }
-
-//     sh 'chmod +x scripts/test_cases.sh'
-//     sh 'bash scripts/test_cases.sh qa'
-//   }
-//   post {
-//     failure {
-//       mail bcc: '', body: "QA tests failed in Jenkins pipeline.", from: '', replyTo: '', subject: ' QA Test Failure', to: 'your@email.com'
-//       error("Stopping pipeline since QA test cases failed.")
-//     }
-//   }
 // }
-
-
-//     /* =========================
-//        DEPLOY TO UAT
-//     ========================== */
-//     stage('Deploy to UAT Environment') {
-//       when {
-//         expression { currentBuild.currentResult == 'SUCCESS' }
-//       }
-//       steps {
-//         echo "Deploying to UAT environment..."
-//         sh 'chmod +x scripts/deploy.sh || true'
-//         sh 'bash scripts/deploy.sh uat'
-//       }
-//       post {
-//         success {
-//           mail to: "${UAT_NOTIFY}",
-//             subject: "Delphi POC | UAT Deployment Successful - Build #${env.BUILD_NUMBER}",
-//             body: "Application deployed to UAT environment. UAT team can start validation.\n\nURL: http://localhost:4003"
-//         }
-//         failure {
-//           mail to: "${UAT_NOTIFY}",
-//             subject: " Delphi POC | UAT Deployment Failed - Build #${env.BUILD_NUMBER}",
-//             body: "Deployment to UAT failed. Logs: ${env.BUILD_URL}"
-//         }
-//       }
-//     }
-
-//     /* =========================
-//        DEPLOY TO PRODUCTION
-//     ========================== */
-//     stage('Deploy to Production Environment') {
-//       when {
-//         branch 'main'
-//       }
-//       steps {
-//         echo "Deploying to PRODUCTION..."
-//         sh 'chmod +x scripts/deploy.sh || true'
-//         sh 'bash scripts/deploy.sh prod'
-//       }
-//       post {
-//         success {
-//           mail to: "${PROD_NOTIFY}",
-//             subject: " Delphi POC | Production Deployment SUCCESS - Build #${env.BUILD_NUMBER}",
-//             body: "Production deployment completed successfully.\n\nURL: http://localhost:4000"
-//         }
-//         failure {
-//           mail to: "${PROD_NOTIFY}",
-//             subject: " Delphi POC | Production Deployment FAILED - Build #${env.BUILD_NUMBER}",
-//             body: "Production deployment failed. Review logs: ${env.BUILD_URL}"
-//         }
-//       }
-//     }
-//   }
-
-//   /* =========================
-//      POST PIPELINE ACTIONS
-//   ========================== */
-//   post {
-//     always {
-//       echo "Pipeline completed with result: ${currentBuild.currentResult}"
-//     }
-//     success {
-//       echo " All stages executed successfully!"
-//     }
-//     failure {
-//       echo "One or more stages failed. Check email notifications and console logs."
-//     }
-//   }
-// }
-
 
 pipeline {
     agent any
@@ -198,48 +116,79 @@ pipeline {
         QA_NOTIFY   = 'vmulherkar@xtsworld.in'
         UAT_NOTIFY  = 'vmulherkar@xtsworld.in'
         PROD_NOTIFY = 'vmulherkar@xtsworld.in'
+
+        // Jenkins secret-text credential id containing your GitHub PAT
+        GIT_CRED_ID = 'github-token'
     }
 
-    options { 
+    options {
         disableConcurrentBuilds()
         timestamps()
-        buildDiscarder(logRotator(numToKeepStr: '20')) 
+        buildDiscarder(logRotator(numToKeepStr: '20'))
     }
 
     stages {
 
+        stage('Git Token Quick Check') {
+            steps {
+                script {
+                    withCredentials([string(credentialsId: "${env.GIT_CRED_ID}", variable: 'GIT_TOKEN')]) {
+                        sh '''
+                          set -e
+                          TMPDIR=$(mktemp -d)
+                          cd "$TMPDIR"
+                          git clone --depth 1 "$REPO_URL" repo || git clone "$REPO_URL" repo
+                          cd repo
+                          git config user.email "ci@delphi-poc"
+                          git config user.name "Delphi CI"
+                          # Attempt an authenticated ls-remote (no push)
+                          git ls-remote "https://${GIT_TOKEN}@github.com/Vedant2000039/Delphi-Pipeline-POC.git" || true
+                          rm -rf "$TMPDIR"
+                        '''
+                    }
+                }
+            }
+        }
+
         stage('Checkout') {
-            steps { 
-                git branch: 'dev', url: "${env.REPO_URL}" 
+            steps {
+                // We checkout dev by default. Multibranch jobs will set BRANCH_NAME; webhook-triggered pipelines may not.
+                git branch: 'dev', url: "${env.REPO_URL}"
             }
         }
 
         stage('Install Dependencies') {
-            steps { 
-                dir('backend') { 
-                    sh 'npm install' 
-                } 
+            steps {
+                dir('backend') {
+                    sh 'npm install'
+                }
             }
         }
 
         stage('Unit Tests - Dev') {
-            steps { 
-                dir('backend') { 
-                    sh 'npm test' 
-                } 
+            steps {
+                dir('backend') {
+                    sh 'npm test'
+                }
             }
             post {
-                success { 
-                    mail to: "${DEV_NOTIFY}", subject: "Unit Tests PASSED (Dev)", body: "${env.BUILD_URL}" 
+                success {
+                    mail to: "${DEV_NOTIFY}", subject: "Unit Tests PASSED (Dev)", body: "${env.BUILD_URL}"
                 }
-                failure { 
-                    mail to: "${DEV_NOTIFY}", subject: "Unit Tests FAILED (Dev)", body: "${env.BUILD_URL}" 
+                failure {
+                    mail to: "${DEV_NOTIFY}", subject: "Unit Tests FAILED (Dev)", body: "${env.BUILD_URL}"
                 }
             }
         }
 
         stage('Deploy to QA') {
-            when { anyOf { branch 'dev'; branch 'main' } }
+            when {
+                expression {
+                    def b = env.BRANCH_NAME ?: env.GIT_BRANCH ?: ''
+                    // match dev or main in any common format (origin/dev, refs/heads/dev, dev)
+                    return (b ==~ /(?i).*\bdev\b.*/ || b ==~ /(?i).*\bmain\b.*/)
+                }
+            }
             steps {
                 sh 'chmod +x scripts/deploy.sh'
                 sh 'bash scripts/deploy.sh qa'
@@ -247,12 +196,52 @@ pipeline {
         }
 
         stage('Run QA Tests') {
-            when { anyOf { branch 'dev'; branch 'main' } }
+            when {
+                expression {
+                    def b = env.BRANCH_NAME ?: env.GIT_BRANCH ?: ''
+                    return (b ==~ /(?i).*\bdev\b.*/ || b ==~ /(?i).*\bmain\b.*/)
+                }
+            }
             steps {
                 sh 'chmod +x scripts/test_cases.sh'
                 sh 'bash scripts/test_cases.sh qa'
             }
             post {
+                success {
+                    script {
+                        // Merge dev -> qa on QA pass
+                        withCredentials([string(credentialsId: "${env.GIT_CRED_ID}", variable: 'GIT_TOKEN')]) {
+                            sh '''
+                              set -e
+                              TMPDIR=$(mktemp -d)
+                              cd "$TMPDIR"
+                              git clone --no-tags --depth 1 "$REPO_URL" repo || git clone "$REPO_URL" repo
+                              cd repo
+                              git config user.email "ci@delphi-poc"
+                              git config user.name "Delphi CI"
+
+                              git fetch origin dev:refs/remotes/origin/dev || true
+                              git fetch origin qa:refs/remotes/origin/qa || true
+
+                              git checkout qa || git checkout -b qa
+                              git reset --hard origin/qa || true
+
+                              if git merge --no-ff --no-edit origin/dev; then
+                                  echo "Merge succeeded (dev -> qa), pushing..."
+                                  REMOTE_URL="https://${GIT_TOKEN}@github.com/Vedant2000039/Delphi-Pipeline-POC.git"
+                                  git push "${REMOTE_URL}" qa
+                                  echo "Push complete: dev -> qa"
+                              else
+                                  echo "Merge conflict or error occurred (dev -> qa). Aborting merge."
+                                  git merge --abort || true
+                                  exit 1
+                              fi
+
+                              rm -rf "$TMPDIR"
+                            '''
+                        }
+                    }
+                }
                 failure {
                     mail to: "${QA_NOTIFY}", subject: 'QA Test Failure', body: "${env.BUILD_URL}"
                     error("QA tests failed.")
@@ -261,11 +250,47 @@ pipeline {
         }
 
         stage('Deploy to UAT') {
-            when { expression { currentBuild.currentResult == 'SUCCESS' } }
-            steps { 
-                sh 'bash scripts/deploy.sh uat' 
+            // Only attempt UAT deploy when pipeline result so far is SUCCESS
+            when { expression { currentBuild.currentResult == null || currentBuild.currentResult == 'SUCCESS' } }
+            steps {
+                sh 'bash scripts/deploy.sh uat'
             }
             post {
+                success {
+                    script {
+                        // Merge qa -> uat on successful UAT deploy
+                        withCredentials([string(credentialsId: "${env.GIT_CRED_ID}", variable: 'GIT_TOKEN')]) {
+                            sh '''
+                              set -e
+                              TMPDIR=$(mktemp -d)
+                              cd "$TMPDIR"
+                              git clone --no-tags --depth 1 "$REPO_URL" repo || git clone "$REPO_URL" repo
+                              cd repo
+                              git config user.email "ci@delphi-poc"
+                              git config user.name "Delphi CI"
+
+                              git fetch origin qa:refs/remotes/origin/qa || true
+                              git fetch origin uat:refs/remotes/origin/uat || true
+
+                              git checkout uat || git checkout -b uat
+                              git reset --hard origin/uat || true
+
+                              if git merge --no-ff --no-edit origin/qa; then
+                                  echo "Merge succeeded (qa -> uat), pushing..."
+                                  REMOTE_URL="https://${GIT_TOKEN}@github.com/Vedant2000039/Delphi-Pipeline-POC.git"
+                                  git push "${REMOTE_URL}" uat
+                                  echo "Push complete: qa -> uat"
+                              else
+                                  echo "Merge conflict or error occurred (qa -> uat). Aborting merge."
+                                  git merge --abort || true
+                                  exit 1
+                              fi
+
+                              rm -rf "$TMPDIR"
+                            '''
+                        }
+                    }
+                }
                 failure {
                     mail to: "${UAT_NOTIFY}", subject: 'UAT Deployment Failed', body: "${env.BUILD_URL}"
                 }
@@ -273,11 +298,52 @@ pipeline {
         }
 
         stage('Deploy to PROD') {
-            when { branch 'main' }
-            steps { 
-                sh 'bash scripts/deploy.sh prod' 
+            when {
+                expression {
+                    def b = env.BRANCH_NAME ?: env.GIT_BRANCH ?: ''
+                    // Only allow deploy to prod when build is triggered from main branch (or refs containing main)
+                    return (b ==~ /(?i).*\bmain\b.*/)
+                }
+            }
+            steps {
+                sh 'bash scripts/deploy.sh prod'
             }
             post {
+                success {
+                    script {
+                        // Merge uat -> prod on successful Prod deploy
+                        withCredentials([string(credentialsId: "${env.GIT_CRED_ID}", variable: 'GIT_TOKEN')]) {
+                            sh '''
+                              set -e
+                              TMPDIR=$(mktemp -d)
+                              cd "$TMPDIR"
+                              git clone --no-tags --depth 1 "$REPO_URL" repo || git clone "$REPO_URL" repo
+                              cd repo
+                              git config user.email "ci@delphi-poc"
+                              git config user.name "Delphi CI"
+
+                              git fetch origin uat:refs/remotes/origin/uat || true
+                              git fetch origin prod:refs/remotes/origin/prod || true
+
+                              git checkout prod || git checkout -b prod
+                              git reset --hard origin/prod || true
+
+                              if git merge --no-ff --no-edit origin/uat; then
+                                  echo "Merge succeeded (uat -> prod), pushing..."
+                                  REMOTE_URL="https://${GIT_TOKEN}@github.com/Vedant2000039/Delphi-Pipeline-POC.git"
+                                  git push "${REMOTE_URL}" prod
+                                  echo "Push complete: uat -> prod"
+                              else
+                                  echo "Merge conflict or error occurred (uat -> prod). Aborting merge."
+                                  git merge --abort || true
+                                  exit 1
+                              fi
+
+                              rm -rf "$TMPDIR"
+                            '''
+                        }
+                    }
+                }
                 failure {
                     mail to: "${PROD_NOTIFY}", subject: 'PROD Deployment Failed', body: "${env.BUILD_URL}"
                 }
@@ -291,4 +357,5 @@ pipeline {
         failure { echo "Some stages failed" }
     }
 }
+
 
