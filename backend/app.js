@@ -35,5 +35,6 @@ const ENVIRONMENT = process.env.ENVIRONMENT || "dev";
 
 app.listen(PORT, '0.0.0.0', () => {
   console.log(` Server running on port ${PORT} [${ENVIRONMENT}]`);
+  console.log(`Hello World`);
 });
 
