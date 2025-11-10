@@ -20,8 +20,9 @@ if (result.error) {
 const app = express();
 app.use(express.json());
 
-// Root endpoint: return a plain-text line that includes the exact phrase
-// "Delphi POC running" (so existing grep tests will match), and include JSON too.
+// -------------------------
+// KEEP the existing root API
+// -------------------------
 app.get("/", (req, res) => {
   const environment = process.env.ENVIRONMENT || "unknown";
   const textBody = `Delphi POC running — environment: ${environment}`;
@@ -34,11 +35,21 @@ app.get("/", (req, res) => {
   // NOTE: curl will receive JSON; grep will still find "Delphi POC running" in body.
 });
 
+// -------------------------------------------------
+// NEW: serve the frontend folder as static resources
+// (place AFTER the '/' handler so '/' remains the API)
+// -------------------------------------------------
+const frontendDir = path.join(__dirname, "../frontend");
+app.use(express.static(frontendDir));
+console.log(`Static frontend served from: ${frontendDir}`);
+console.log(`Open /index.html to view the frontend when server is running.`);
+
 // Port and environment handling
 const PORT = process.env.PORT || 5000;
 const ENVIRONMENT = process.env.ENVIRONMENT || "dev";
 
 app.listen(PORT, "0.0.0.0", () => {
   console.log(`Server running on port ${PORT} [${ENVIRONMENT}]`);
-  console.log(`Root URL: http://localhost:${PORT}`);
+  console.log(`Root API: http://localhost:${PORT}/`);
+  console.log(`Frontend: http://localhost:${PORT}/index.html`);
 });
