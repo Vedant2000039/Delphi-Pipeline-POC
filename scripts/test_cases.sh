@@ -29,7 +29,7 @@ echo "PASS: HTTP 200"
 # Test 2: Response contains 'Delphi POC running'
 BODY=$(curl -s "$URL")
 echo "$BODY" | grep -q "Delphi POC running" || { echo "FAIL: Missing 'Delphi POC running'"; exit 1; }
-echo "PASS: Response contains 'Delphi POC running'"
+echo "PASS: Response contains 'Delphi POC not running'"
 
 # Test 3: Response contains environment
 echo "$BODY" | tr '[:upper:]' '[:lower:]' | grep -q "$(echo "$ENVIRONMENT" | tr '[:upper:]' '[:lower:]')" || { echo "FAIL: Missing environment '$ENVIRONMENT'"; exit 1; }
@@ -38,7 +38,7 @@ echo "PASS: Response contains environment '$ENVIRONMENT'"
 echo "All smoke tests passed for '$ENVIRONMENT'"
 
 # -----------------------------------------------------------
-# ✅ Test 4: Frontend button exists (Optional UI test)
+# Test 4: Frontend button exists (Optional UI test)
 # -----------------------------------------------------------
 FRONTEND_FILE="${ROOT_DIR}/frontend/index.html"
 
