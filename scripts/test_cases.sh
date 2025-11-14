@@ -47,8 +47,8 @@ echo "Running frontend UI test (button presence check)..."
 
 if [ -f "$FRONTEND_FILE" ]; then
   grep -q "id=\"fetch-btn\"" "$FRONTEND_FILE" && \
-    echo "PASS: Frontend button 'fetch-btn' found ✅" || {
-      echo "FAIL: Frontend button 'fetch-btn' NOT found ❌"
+    echo "PASS: Frontend button 'fetch-btn' found " || {
+      echo "FAIL: Frontend button 'fetch-btn' NOT found"
       exit 1
   }
 else
